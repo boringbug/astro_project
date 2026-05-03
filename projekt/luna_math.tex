@@ -1,0 +1,165 @@
+\documentclass{article}
+\usepackage{imakeidx}  % More flexible than makeidx
+\makeindex
+\usepackage{hyperref}  % Optional: for clickable links
+\usepackage{amsmath}        % Adds mathematical typesetting support
+\usepackage{amssymb}
+\usepackage{amsthm}         % Required for theorem environments
+\usepackage{graphicx}
+\usepackage[margin=1.5cm]{geometry}
+\usepackage{siunitx}
+\usepackage{tikz}
+
+\title{Luna math}
+\author{Filip Jesenšek}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\newpage
+
+\section{Problem lociranja kraterjev}
+
+\subsection{Matematičen opis problema lociranja točk}
+Množico točk na enotski n-sferi bom poimenoval $S^n$. Definicija te množoce bi bila naslednja:
+
+\begin{equation}
+	S^n = \{x \in \mathbb{R}^{n+1} : \, ||x|| = 1\}
+	\label{eq:definition_sphear}
+\end{equation}
+
+Tukaj se bomo seveda ukvarjali samo z množico točk na 2-sferi $S^2$
+
+Išemo način kako neko točko $T$ z koordinatami $(x, y)$ na pridobljeni sliki, preslikamo na sfero $S^2$, 
+ki ima neko preferenčno orientacijo (sever, jug, vzhod, zahod). Tukaj smo seveda že takoj predpostavili,
+da je Lunina površina sfera, oziroma ekvivalentno, da je njena ecentričnost $e = 0$, 
+v resnici je $e \approx 0.05$ (bolj okrogla skoraj ne more biti).
+
+\subsection{Čez objektiv}
+Preden se lahko sploh pogovarjamo o rotacijah različnih koordinatnih sistemov, je treba pogledati kako sama 
+leča v teleskopu (ki slika luno) "deformira" sliko. To lahko preprosto modeliramo z linearno transformacijo,
+ki raztegne osi in aplicira strig. V splošnem lahko tako matriko zapišemo kot.
+
+\begin{equation}
+	M = 
+	\begin{pmatrix}
+		f_x & s \\
+		0 & f_y
+	\end{pmatrix}
+	\label{eq:lense_deformation}
+\end{equation}
+
+To mogoče nebo treba uporabiti, saj so lahko leče tako "dobre" da je $M = I$ ($M$ kar identiteta).
+
+\subsection{Iz ne deformirane slike na sfero}
+Tukaj je naša naloga, da našo 2D sliko spravimo na sfero. Za enkrat se ne ukvarjamo z tem, kateri del sfere smo
+slikali, to nas čaka v naslednjem razdelku. Problem lahko rešimo na način, da najprej pogledamo, kaj se
+zgodi z vektroji v 3D prostoru, ko jih slikamo z kamero. Ko to ugotovimo, se lahko vprašamo kaj bi lahko bila
+obratna transformacija.
+
+Že sama intuicija pove, da samo dejanje slikanja je v resnici neke vrste projekcija. V tem primeru smo
+množico točk iz $S^2$ preslikali na ravnino $XY$. Izbira ravnine je seveda arbitrarna, ni nobenega posebnega
+razloga zakaj bi si izbrali ravnino $XY$. To lahko formalo zapišemo, na nasledni način. Naj bo
+$v \in S^2$ in naj bo $P$ projektor na $XY$ ravnino. 
+
+\begin{equation}
+	P v = w
+	\label{eq:projection}
+\end{equation}
+
+Projektor v standardni bazi lahko trivialno zapišemo kar eksplicitno.
+
+\begin{equation}
+	P = 
+	\begin{pmatrix}
+		1 & 0 & 0 \\
+		0 & 1 & 0 \\
+		0 & 0 & 0
+	\end{pmatrix}
+	\label{eq:projector}
+\end{equation}
+
+Vektor $w$ si lahko predstavljamo, kot vektor ki ga vidimo na naši sliki. To ni več 3D objekt v
+prostoru, ampak živi samo v naši 2D sliki. Mi imamo $w$ podan 
+(to je una stvar, ki jo merimo/slikamo), sepravi naloga je izračunati $v$. Če nalogo bolje vbesedimo, sprašujemo so po takih vektorjih $v \in S^2$, ki po projekciji $P$ postanejo $w$ v 
+ravnini $XY$. Tukaj bi vsak z veseljem množili $P^{-1}$ z leve obi strani, dobil bi
+$v = P^{-1} w$. Vendar, če se malo vstavimo in bolje analiziramo ugotovimo, da $P^{-1}$
+sploh ne obstaja, saj je $\det P = 0$. To pomeni, da je matrika $P$ neobrnjiva. Tako da na žalost bomo morali
+iti po komponentah (ker je matrika tako preprosta bo to trivialno). Če napišemo (\ref{eq:projection}) eksplicitno
+dobimo naslednje.
+
+\begin{equation}
+	\begin{pmatrix}
+		1 & 0 & 0 \\
+		0 & 1 & 0 \\
+		0 & 0 & 0
+	\end{pmatrix}
+	\begin{pmatrix}
+		\sin \vartheta \cos \varphi \\
+		\sin \vartheta \sin \varphi \\
+		\cos \vartheta
+	\end{pmatrix}
+	=
+	\begin{pmatrix}
+		x \\
+		y \\
+		z	
+	\end{pmatrix}
+	\label{eq:projector_components}
+\end{equation}
+
+Znano je da lahko vsak element iz $S^2$ napišemo na ta način z polarnimi koti. 
+Tukaj $z$ komponenta seveda odpade, saj na sliki "ne vidimo globine". Ko se znebimo nepotrebne $z$ komponente
+na ostane samo 2 krat 2 identiteta. Kot obljubljeno projekcija deluje trivialno na $v$ in
+dobimo naslednji sistem enačb.
+
+\begin{equation}
+	\begin{aligned}
+		x = \sin \vartheta \cos \varphi \\
+		y = \sin \vartheta \sin \varphi 
+	\end{aligned}
+	\label{eq:system_of_equations}
+\end{equation}
+
+\newpage
+
+Z deljenjem enačb in malo obračanja dobimo rešitev.
+
+\begin{equation}
+	\tan \varphi = \frac{y}{x}
+	\label{eq:phi}
+\end{equation}
+
+\begin{equation}
+	\sin \vartheta = \frac{x}{\cos \varphi} = \frac{y}{\sin \varphi}
+	\label{eq:theta}
+\end{equation}
+
+Ko dobimo par koordinat $(x,y)$ lahko naprej po (\ref{eq:phi}) dobim $\varphi$ in nato po (\ref{eq:theta}) dobimo
+še $\vartheta$.
+
+\subsection{Pravilno orientiranje sfere}
+Zdaj pa pridemo do najtežjega dela tega problema. Naša sfera ima v 3D prostoru neko odlikovano os (tej osi 
+rečemo sever). Naša naloga je v resnici iskanje zapisa točk (ki imajo koordiante v našem sistemu) v 
+odlikovanem koordinatem sistemu. Naš problem zdaj je izključno omejen na $S^2$. Tako da da se nebomo medli,
+kateri sistem je kateri, bom pisal $v$ točke, ki so v našem sistemu in $u$ točke v odlikovanem sistemu. 
+Da vse točke iz slike preslikamo na sfero v odlikovanem koordinatem sistemu, moramo izbrati 2 referenčni točki, 
+ki vemo kam se preslikajo. Da enolično določimo preslikavo potrebujemo dve točki, saj je problem 2 dimenzionalen
+koordinati sta $\varphi$ in $\vartheta$ naša vez (katera nam zmanjšuje dimenzijo problema) pa je radij lune.
+Za rešitev tega problema bomo uporabili kvaternione. Vsi kvaternioni s katerimi se bomo ukvarjali bodo enotski.
+
+
+Recimo da poznamo naslednje točke $v_{1}, v_{2}, u_{1}, u_{2}$ kjer gre $v_i \mapsto u_i$ po transformaciji.
+
+Rotacijske kvaternione $q \in \mathbb{H}$ lahko zapišemo na naslednji način.
+\begin{equation}
+	q = \cos \frac{\phi}{2} + \vec{n} \sin\frac{\phi}{2}
+	\label{eq:rot_quat}
+\end{equation}
+To je splošen zapis kvaterniona, ki če konjugiramo nek vektor z njim, dobimo rotacijo za kot $\phi$ okoli osi
+$\vec{n}$ ($\vec{n}$ je seveda normiran na 1). Sepravi išemo tak $q$ da bo $q v_i q^{-1} = u_i$ za dane vektorje
+$v_1, v_2$ in $u_1, u_2$. Rešitev lahko poiščemo tako, da pogledamo kateri
+
+
+\end{document}
