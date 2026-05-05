@@ -21,30 +21,17 @@ class Crater:
     depth_km: float
 
 
-def selenographic_to_pixel(latitude: np.ndarray, longitude: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    '''
-    Latitude = phi
-    Longitude = lambda 
-    '''
-    R_MOON_PIXEL = 1048
-    X_MOON_CENTER, Y_MOON_CENTER = (1705, 1336)
+@dataclass
+class Moon:
+    name: str
+    center_pixel: tuple[float, float]
+    radius_pixel: float
+    tiltednes: float
 
-    latitude = np.deg2rad(latitude)
-    longitude = np.deg2rad(longitude)
 
-    x = R_MOON_PIXEL * np.sin(longitude) * np.cos(latitude) + X_MOON_CENTER
-    y = R_MOON_PIXEL * np.sin(latitude) + Y_MOON_CENTER
-
-    return x, y
-
-def rotation_matrix(angle_deg: float) -> np.ndarray:
-    theta = np.deg2rad(angle_deg)
-    cos_t, sin_t = np.cos(theta), np.sin(theta)
-    return np.array([
-        [cos_t, -sin_t],
-        [sin_t, cos_t]
-    ])
-
+def get_longest_contour(image_data, threshold: float = 1.2e4):
+    contours = measure.find_contours(image_data, level=threshold)
+    return max(contours, key=len)
 
 def fit_circle(x: np.ndarray, y: np.ndarray) -> tuple[tuple[float, float], float]:
     M = np.column_stack([x, y, np.ones_like(x)])
@@ -58,6 +45,21 @@ def fit_circle(x: np.ndarray, y: np.ndarray) -> tuple[tuple[float, float], float
 
     return (x_center, y_center), radius
 
+def get_moon_center_and_radius(image_data, x_contour_cutoff: int = 1_750):
+    longest_contour = get_longest_contour(image_data)
+    y_contour, x_contour = longest_contour[:, 0], longest_contour[:, 1]
+
+    # Get the good parts of the contour
+    filtered_x_contour, filtered_y_contour = zip(
+        *[(x, y) for x, y in zip(x_contour, y_contour)
+        if x > x_contour_cutoff]) or ([], [])
+
+    sliced_x_contour = np.array(filtered_x_contour)
+    sliced_y_contour = np.array(filtered_y_contour)
+
+    center, radius = fit_circle(sliced_x_contour, sliced_y_contour)
+
+    return center, radius
 
 def circle_points(center: tuple[float, float], radius: float, number_points: int =100) -> tuple[np.ndarray, np.ndarray]:
     theta = np.linspace(0, 2 * np.pi, number_points)
@@ -67,64 +69,76 @@ def circle_points(center: tuple[float, float], radius: float, number_points: int
 
     return x, y
 
+def plot_circle(center: tuple[float, float], radius: float, color: str, linewidth: float = 0.5) -> None:
+    x_circle, y_circle = circle_points(center, radius)
+    plt.plot(x_circle, y_circle, c=color, linewidth=linewidth)
 
+def selenographic_to_pixel(latitude: np.ndarray, longitude: np.ndarray, image_data) -> tuple[np.ndarray, np.ndarray]:
+    '''
+    Latitude = phi
+    Longitude = lambda 
+    '''
 
-def main() -> None:
-    # PRINTING WITH MATPLOTLIB
-    crater_data_frame = pd.read_csv("creaters.csv")
+    moon_center_pixel, moon_radius_pixel = get_moon_center_and_radius(image_data)
+
+    latitude = np.deg2rad(latitude)
+    longitude = np.deg2rad(longitude)
+
+    x = moon_radius_pixel * np.sin(longitude) * np.cos(latitude) + moon_center_pixel[0]
+    y = moon_radius_pixel * np.sin(latitude) + moon_center_pixel[1]
+
+    return x, y
+
+def plot_craters(file_name: str, size: float = 0.5, color: str = "Blue") -> None:
+    crater_data_frame = pd.read_csv(file_name)
     real_lat, real_long = crater_data_frame['real_Phi'], crater_data_frame['real_lambda']
     pixel_x_coords, pixel_y_coords = selenographic_to_pixel(real_lat, real_long)
+    plt.scatter(pixel_x_coords, pixel_y_coords, s=size, c=color)
 
-    moon_file_name = "LUNA-C-1, 2025-01-11, 1x5L, SkyWatcher, (C), SBIG ST-8300 CCD Camera_average_stacked.fits"
 
+def get_moon_data(file_name: str, blur: float = 1):
     # Open and read the FITS file
-    hdul = fits.open(moon_file_name)
+    hdul = fits.open(file_name)
     image_data = hdul[0].data  # Extract image data
-    image_data = image_data[::-1, :]
-
-    # Close the file
+    image_data = image_data[::-1, :] # reversing along the y axis
     hdul.close()
+    blurred_image_data = ndimage.gaussian_filter(image_data, sigma=blur)
 
-    # Display with matplotlib
-    plt.figure(figsize=(10, 8))
-    plt.title('FITS Image')
+    return blurred_image_data
 
-    blurred = ndimage.gaussian_filter(image_data, sigma=1)
-    plt.imshow(blurred, cmap='gray', origin='lower') # If its blured to simga=1 it look better
+def plot_moon(image_data) -> None:
+    plt.imshow(image_data, cmap='gray', origin='lower')
     plt.colorbar(label='Intensity (ADU/DN)')
 
 
-    plt.scatter(pixel_x_coords, pixel_y_coords)
+def get_contours(image_data, threshold: float = 1.2e4):
+    return measure.find_contours(image_data, level=threshold)
 
-
-    black_intensity: float = 1.2e4
-    contours = measure.find_contours(blurred, level=black_intensity)
-
-    contour = max(contours, key=len)
+def plot_contour(contour, linewidth: float = 0.5) -> None:
     y_contour, x_contour = contour[:, 0], contour[:, 1]
+    plt.plot(x_contour, y_contour, linewidth=linewidth)
+
+def plot_all_contours(image_data, threshold):
+    contours = get_contours(image_data, threshold)
+
+    for contour in contours:
+        y_contour, x_contour = contour[:, 0], contour[:, 1]
+        plt.plot(x_contour, y_contour)
 
 
-    x_bright_side_limit_pixel: int = 1_750
-
-    sliced_x_contour, sliced_y_contour = zip(
-        *[(x, y) for x, y in zip(x_contour, y_contour)
-        if x > x_bright_side_limit_pixel]) or ([], [])
-
-    sliced_x_contour = np.array(sliced_x_contour)
-    sliced_y_contour = np.array(sliced_y_contour)
 
 
-    center, radius = fit_circle(sliced_x_contour, sliced_y_contour)
+MOON_FILE_NAME = "LUNA-C-1, 2025-01-11, 1x5L, SkyWatcher, (C), SBIG ST-8300 CCD Camera_average_stacked.fits" 
+CRATER_FILE_NAME = "creaters.csv"
 
-    print(f"Center: {center} and radius: {radius}")
 
-    x_circle, y_circle = circle_points(center, radius)
+def main() -> None:
+    image_data = get_moon_data(MOON_FILE_NAME)
 
-    plt.plot(x_contour, y_contour, color='r', linewidth=0.5)
-    plt.plot(sliced_x_contour, sliced_y_contour, color='g', linewidth=0.5)
-    plt.plot(x_circle, y_circle)
+    plot_moon(image_data)
 
     plt.show()
+
 
 
 
