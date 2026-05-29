@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
+from numpy._core.numeric import size
 from scipy import ndimage
 from skimage import measure
 
@@ -168,3 +169,42 @@ class Crater:
         return (f"Crater: {self.name}\n"
                 f"Selenographic coordinates: {self.selenographic_coords}"
                 f"Radius: {self.radius}")
+
+
+MOON_FILE_PATH = ("LUNA-C-1, 2025-01-11, 1x5L, SkyWatcher, (C), "
+                  "SBIG ST-8300 CCD Camera_average_stacked.fits")
+
+
+
+def main() -> None:
+    moon = Moon(
+        name="Moon",
+        file_path=MOON_FILE_PATH,
+        blur_sigma=1.0
+    )
+
+    padding = 10
+
+    x_min = int(moon.center[0] - moon.radius - padding)
+    x_max = int(moon.center[0] + moon.radius + padding)
+    y_min = int(moon.center[1] - moon.radius - padding)
+    y_max = int(moon.center[1] + moon.radius + padding)
+
+
+    croped_image = moon.image[y_min:y_max, x_min:x_max]
+
+    plt.imshow(croped_image, cmap='gray', origin='lower')
+    plt.show()
+
+
+
+
+
+
+# TODO: Crop the image to show and calculate only on the actual moon
+# TODO: Have the data only in the moon part, the other part of the matrix
+# should be filled with zeros
+
+
+if __name__ == "__main__":
+    main()
