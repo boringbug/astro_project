@@ -141,7 +141,8 @@ class Moon:
     def info(self) -> str:
         """Return a string with moon information."""
         return (f"Moon: {self.name}\n"
-                f"Center: ({self.center[0]:.1f}, {self.center[1]:.1f}) pixels\n"
+                f"Center: ({self.center[0]:.1f}, "
+                f"{self.center[1]:.1f}) pixels\n"
                 f"Radius: {self.radius:.1f} pixels\n"
                 f"Image shape: {self.image.shape}")
 
@@ -151,6 +152,30 @@ class Moon:
     def plot_craters(self) -> None:
         ...
 
+    def _distance_squred(self,
+                         v: tuple[float, float],
+                         u: tuple[float, float]
+                         ) -> float:
+        return (v[0] - u[0])**2 + (v[1] - u[1])**2
+
+    def in_moon(self, location: tuple[float, float]) -> bool:
+        if self._distance_squred(location, self.center) <= self.radius**2:
+            return True
+        else:
+            return False
+
+    @property
+    def croped_image(self) -> np.ndarray:
+        image_height = len(self.image)
+        image_width = len(self.image[0])
+
+        croped_image = np.zeros_like(self.image)
+
+        for y_pixel_coordinate in range(image_height):
+            for x_pixel_coordinate in range(image_width):
+                if self.in_moon((x_pixel_coordinate, y_pixel_coordinate)):
+                    croped_image[y_pixel_coordinate, x_pixel_coordinate] = self.image[y_pixel_coordinate, x_pixel_coordinate]
+        return croped_image
 
 
 class Crater:
@@ -175,7 +200,6 @@ MOON_FILE_PATH = ("LUNA-C-1, 2025-01-11, 1x5L, SkyWatcher, (C), "
                   "SBIG ST-8300 CCD Camera_average_stacked.fits")
 
 
-
 def main() -> None:
     moon = Moon(
         name="Moon",
@@ -183,19 +207,8 @@ def main() -> None:
         blur_sigma=1.0
     )
 
-    padding = 10
-
-    x_min = int(moon.center[0] - moon.radius - padding)
-    x_max = int(moon.center[0] + moon.radius + padding)
-    y_min = int(moon.center[1] - moon.radius - padding)
-    y_max = int(moon.center[1] + moon.radius + padding)
-
-
-    croped_image = moon.image[y_min:y_max, x_min:x_max]
-
-    plt.imshow(croped_image, cmap='gray', origin='lower')
+    plt.imshow(moon.croped_image)
     plt.show()
-
 
 
 
@@ -204,7 +217,6 @@ def main() -> None:
 # TODO: Crop the image to show and calculate only on the actual moon
 # TODO: Have the data only in the moon part, the other part of the matrix
 # should be filled with zeros
-
 
 if __name__ == "__main__":
     main()
